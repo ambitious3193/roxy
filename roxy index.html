@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>🌿 中药·连抽展示 | 443味</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', '华文细黑', sans-serif;
+        }
+        body {
+            background: #eef1e6;
+            min-height: 100vh;
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+        }
+        .app {
+            max-width: 500px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* 顶栏 紧凑 */
+        .top-bar {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 40px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+            border: 1px solid #cad2b5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .logo h1 {
+            font-size: 1.45rem;
+            font-weight: 550;
+            color: #285028;
+            letter-spacing: -0.3px;
+        }
+        .progress-badge {
+            background: #e3ecd6;
+            border-radius: 40px;
+            padding: 6px 16px;
+            display: flex;
+            gap: 18px;
+            font-size: 0.9rem;
+        }
+        .progress-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .dot-master { width: 10px; height: 10px; background: #2d6e2d; border-radius: 10px; }
+        .dot-learning { width: 10px; height: 10px; background: #f0b849; border-radius: 10px; }
+        .badge-num { font-weight: 600; margin-left: 2px; }
+
+        /* 抽取按钮行 3列 */
+        .draw-row {
+            display: flex;
+            gap: 8px;
+            margin: 4px 0;
+        }
+        .draw-btn {
+            flex: 1;
+            background: white;
+            border: 1px solid #b6c4a0;
+            border-radius: 40px;
+            padding: 12px 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #1d3b1d;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            cursor: pointer;
+            transition: 0.1s;
+            text-align: center;
+        }
+        .draw-btn.primary {
+            background: #3a6b3a;
+            border-color: #1e421e;
+            color: white;
+            box-shadow: 0 5px 10px #3a6b3a55;
+        }
+        .draw-btn.primary:active { background: #2b532b; }
+        .draw-btn:active { background: #ddecd0; }
+
+        /* 本次抽中卡片 — 现在用于展示单味或连抽所有结果 */
+        .current-card {
+            background: #f6f9ee;
+            border-radius: 40px;
+            padding: 20px 16px;
+            border: 2px solid #c1d2a8;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+        .current-label {
+            font-size: 0.95rem;
+            color: #617554;
+            margin-bottom: 8px;
+        }
+        /* 单味用大字体，连抽时用flex换行显示小药丸 */
+        .current-herb {
+            font-size: 3.2rem;
+            font-weight: 550;
+            color: #1d451d;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+        /* 连抽结果容器 — 直接放在current-card内，替换大字体 */
+        .multi-herbs-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            max-height: 220px;
+            overflow-y: auto;
+            padding: 8px 4px;
+        }
+        .herb-chip {
+            background: white;
+            border-radius: 40px;
+            padding: 10px 20px;
+            border: 1px solid #9fb280;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #1d3f1d;
+            box-shadow: 0 2px 6px #c0bb9c;
+            white-space: nowrap;
+        }
+
+        /* 统计排行 (移动端紧凑) */
+        .rank-section {
+            background: #fefcf2;
+            border-radius: 40px;
+            border: 1px solid #d2cbae;
+            padding: 16px 14px;
+        }
+        .rank-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            color: #3f5a3f;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        .rank-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f4f7ea;
+            border-radius: 30px;
+            padding: 8px 10px;
+            border: 1px solid #dad1b2;
+        }
+        .rank-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            border-bottom: 1px dashed #cec9aa;
+            font-size: 0.95rem;
+        }
+        .rank-name {
+            width: 90px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #2d472d;
+        }
+        .rank-bar-bg {
+            flex: 1;
+            height: 18px;
+            background: #dbd6b5;
+            border-radius: 40px;
+            overflow: hidden;
+        }
+        .rank-bar-fill {
+            height: 18px;
+            background: #558b55;
+            border-radius: 40px;
+            width: 0%;
+            transition: width 0.2s;
+        }
+        .rank-count {
+            min-width: 35px;
+            text-align: right;
+            font-weight: 500;
+            color: #235023;
+        }
+
+        /* 药库 + 工具栏 */
+        .library-panel {
+            background: #fefcf2;
+            border-radius: 40px;
+            border: 1px solid #d2cbae;
+            padding: 18px 14px;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .search-box {
+            flex: 2;
+            min-width: 160px;
+            background: white;
+            border: 1px solid #bcb48c;
+            border-radius: 40px;
+            padding: 10px 16px;
+            font-size: 0.95rem;
+        }
+        .icon-btn {
+            background: white;
+            border: 1px solid #bcb48c;
+            border-radius: 40px;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .icon-btn:active { background: #dee9d1; }
+        .danger-btn { border-color: #c5956e; color: #774d2e; }
+        .danger-btn:active { background: #fbefe3; }
+
+        /* 药库网格 两列 */
+        .herb-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            max-height: 280px;
+            overflow-y: auto;
+            padding: 4px 2px;
+        }
+        .herb-item {
+            background: #fcfcf2;
+            border-radius: 40px;
+            padding: 8px 12px;
+            border: 1px solid #cbc09b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .herb-item:active { background: #e2ecce; }
+        .herb-name {
+            color: #2f462f;
+            font-weight: 440;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 90px;
+        }
+        .herb-count-pill {
+            background: #dad0b2;
+            border-radius: 30px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #2c4f2c;
+        }
+
+        /* 导入区域 */
+        .import-area {
+            background: #f9f6e7;
+            border-radius: 30px;
+            padding: 15px;
+            margin-top: 15px;
+            border: 1px dashed #b8a77b;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .import-area textarea {
+            width: 100%;
+            border: 1px solid #cbbf9a;
+            border-radius: 28px;
+            padding: 12px 16px;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        .delete-hint {
+            background: #fffbeb;
+            border-radius: 30px;
+            padding: 8px 16px;
+            color: #8c6e4b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .small-btn {
+            background: white;
+            border: 1px solid #bcb48c;
+            border-radius: 30px;
+            padding: 5px 15px;
+            font-size: 0.85rem;
+        }
+        .footer-note {
+            color: #746e52;
+            font-size: 0.85rem;
+            text-align: center;
+            background: #f0ead9;
+            padding: 10px;
+            border-radius: 30px;
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <!-- 顶栏 进度 -->
+    <div class="top-bar">
+        <div class="logo"><h1>📖 443味·自测</h1></div>
+        <div class="progress-badge" id="progressDisplay">
+            <div class="progress-item"><span class="dot-master"></span><span id="masterCount">0</span></div>
+            <div class="progress-item"><span class="dot-learning"></span><span id="learningCount">443</span></div>
+        </div>
+    </div>
+
+    <!-- 抽取按钮三兄弟 -->
+    <div class="draw-row">
+        <button class="draw-btn primary" id="drawSingleBtn">单味</button>
+        <button class="draw-btn" id="drawFiveBtn">五味</button>
+        <button class="draw-btn" id="drawTenBtn">十味</button>
+    </div>
+
+    <!-- 本次抽中卡片：动态展示单味大数字 或者 连抽多味标签 -->
+    <div class="current-card" id="currentCard">
+        <div class="current-label" id="currentLabel">本次抽中</div>
+        <!-- 默认显示单味大字体容器，连抽时会隐藏并替换为multi容器 -->
+        <div id="singleHerbContainer">
+            <div class="current-herb" id="currentHerb">——</div>
+        </div>
+        <!-- 连抽多味容器 (初始隐藏) -->
+        <div id="multiHerbContainer" class="multi-herbs-container" style="display: none;"></div>
+    </div>
+
+    <!-- 统计排行卡片 -->
+    <div class="rank-section">
+        <div class="rank-header">
+            <span>📊 抽中排行</span>
+            <span style="font-size:0.8rem;">点击药名可再抽</span>
+        </div>
+        <div class="rank-list" id="rankList">
+            <div style="padding:16px; text-align:center; color:#aaa;">暂无记录</div>
+        </div>
+    </div>
+
+    <!-- 药库 + 编辑工具 -->
+    <div class="library-panel">
+        <div class="toolbar">
+            <input type="text" class="search-box" id="searchInput" placeholder="🔍 搜索药名">
+            <button class="icon-btn" id="openImportBtn">📥 导入</button>
+            <button class="icon-btn danger-btn" id="deleteModeToggle">✏️ 删除</button>
+        </div>
+
+        <!-- 药库网格 两列 -->
+        <div class="herb-grid" id="herbGrid"></div>
+
+        <!-- 导入区域(隐藏) -->
+        <div class="import-area" id="importArea" style="display: none;">
+            <textarea id="bulkInput" rows="2" placeholder="输入药名，用逗号/空格隔开"></textarea>
+            <div style="display: flex; gap: 8px;">
+                <button class="icon-btn" id="confirmImportBtn" style="flex:2;">✅ 确认</button>
+                <button class="icon-btn" id="cancelImportBtn">取消</button>
+            </div>
+        </div>
+
+        <!-- 删除模式提示 -->
+        <div class="delete-hint" id="deleteHint" style="display: none;">
+            <span>🗑️ 点击药库药物删除</span>
+            <button class="small-btn" id="exitDeleteMode">完成</button>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="icon-btn" id="resetStatsBtn" style="flex:1;">📉 重置统计</button>
+            <button class="icon-btn" id="resetToDefaultBtn" style="flex:1;">↺ 恢复默认</button>
+        </div>
+        <div class="footer-note">点击药名快速+1 · 等概率抽签</div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ------- 默认药库 (443味) -------
+    const DEFAULT_HERBS = [
+        "麻黄","桂枝","紫苏叶","生姜","香薷","荆芥","防风","羌活","白芷","细辛","藁本","苍耳子","辛夷","葱白","胡荽","西河柳",
+        "薄荷","牛蒡子","蝉蜕","桑叶","菊花","蔓荆子","柴胡","升麻","葛根","淡豆豉","浮萍","木贼","谷精草",
+        "石膏","寒水石","知母","芦根","天花粉","竹叶","淡竹叶","鸭跖草","栀子","夏枯草","决明子","密蒙花","青葙子",
+        "黄芩","黄连","黄柏","龙胆","秦皮","苦参","白鲜皮",
+        "金银花","连翘","穿心莲","大青叶","板蓝根","青黛","贯众","蒲公英","紫花地丁","野菊花","重楼","拳参","漏芦","土茯苓","鱼腥草","金荞麦",
+        "大血藤","败酱草","射干","山豆根","马勃","青果","木蝴蝶","白头翁","马齿苋","鸦胆子","地锦草","半边莲","白花蛇舌草","山慈菇","熊胆粉",
+        "千里光","白蔹","四季青","绿豆","生地黄","玄参","牡丹皮","赤芍","紫草","水牛角","青蒿","白薇","地骨皮","银柴胡","胡黄连",
+        "大黄","芒硝","番泻叶","芦荟","火麻仁","郁李仁","松子仁","甘遂","京大戟","芫花","商陆","牵牛子","巴豆霜","千金子",
+        "独活","威灵仙","徐长卿","川乌","蕲蛇","乌梢蛇","木瓜","蚕沙","伸筋草","油松节","海风藤","青风藤","丁公藤","昆明山海棠","路路通","穿山龙",
+        "秦艽","防己","桑枝","豨莶草","臭梧桐","海桐皮","络石藤","雷公藤","老鹳草","丝瓜络","五加皮","桑寄生","狗脊","千年健","雪莲花",
+        "广藿香","佩兰","苍术","厚朴","砂仁","豆蔻","草豆蔻","草果","茯苓","薏苡仁","猪苓","泽泻","冬瓜皮","玉米须","葫芦","香加皮","枳椇子",
+        "车前子","滑石","木通","通草","瞿麦","萹蓄","地肤子","海金沙","石韦","冬葵子","灯心草","萆薢","茵陈","金钱草","虎杖","地耳草","垂盆草","鸡骨草","珍珠草",
+        "附子","干姜","肉桂","吴茱萸","小茴香","丁香","高良姜","花椒","胡椒","荜茇","荜澄茄",
+        "陈皮","青皮","枳实","木香","沉香","檀香","川楝子","乌药","荔枝核","香附","佛手","香橼","玫瑰花","梅花","娑罗子","薤白","大腹皮","甘松","九香虫","刀豆","柿蒂",
+        "山楂","六神曲","麦芽","稻芽","莱菔子","鸡内金","使君子","苦楝皮","槟榔","南瓜子","鹤草芽","雷丸","鹤虱","榧子","芜荑",
+        "小蓟","大蓟","地榆","槐花","侧柏叶","白茅根","苎麻根","羊蹄","三七","茜草","蒲黄","花蕊石","白及","仙鹤草","紫珠叶","棕榈炭","血余炭","藕节","艾叶","炮姜","灶心土",
+        "川芎","延胡索","郁金","姜黄","乳香","没药","五灵脂","降香","丹参","红花","桃仁","益母草","泽兰","牛膝","鸡血藤","王不留行","月季花","凌霄花",
+        "土鳖虫","马钱子","自然铜","苏木","骨碎补","血竭","儿茶","刘寄奴","莪术","三棱","水蛭","虻虫","斑蝥","穿山甲",
+        "半夏","天南星","白附子","芥子","皂荚","旋覆花","白前","猫爪草","川贝母","浙贝母","瓜蒌","竹茹","竹沥","天竺黄","前胡","桔梗","胖大海","海藻","昆布","黄药子","海蛤壳","海浮石","瓦楞子","礞石",
+        "苦杏仁","紫苏子","百部","紫菀","款冬花","马兜铃","枇杷叶","桑白皮","葶苈子","白果","矮地茶","洋金花",
+        "朱砂","磁石","龙骨","琥珀","酸枣仁","柏子仁","灵芝","首乌藤","合欢皮","远志",
+        "石决明","珍珠母","牡蛎","紫贝齿","代赭石","刺蒺藜","罗布麻叶","羚羊角","牛黄","珍珠","钩藤","天麻","地龙","全蝎","蜈蚣","僵蚕",
+        "麝香","冰片","苏合香","石菖蒲","人参","西洋参","党参","太子参","黄芪","白术","山药","白扁豆","甘草","大枣","刺五加","绞股蓝","红景天","沙棘","饴糖","蜂蜜",
+        "鹿茸","紫河车","淫羊藿","巴戟天","仙茅","胡芦巴","杜仲","续断","肉苁蓉","锁阳","补骨脂","益智仁","菟丝子","沙苑子","蛤蚧","核桃仁","冬虫夏草","韭菜子","阳起石","紫石英","海狗肾","海马","蛤蟆油",
+        "当归","熟地黄","白芍","阿胶","何首乌","龙眼肉","北沙参","南沙参","百合","麦冬","天冬","石斛","玉竹","黄精","枸杞子","墨旱莲","女贞子","桑椹","黑芝麻","龟甲","鳖甲",
+        "麻黄根","浮小麦","糯稻根","五味子","乌梅","五倍子","罂粟壳","诃子","石榴皮","肉豆蔻","赤石脂","禹余粮","山茱萸","覆盆子","桑螵蛸","海螵蛸","金樱子","莲子","芡实","刺猬皮","椿皮","鸡冠花",
+        "常山","甜瓜蒂","胆矾","藜芦","雄黄","硫黄","白矾","蛇床子","土荆皮","蜂房","樟脑","蟾酥","大蒜","红粉","轻粉","砒石","铅丹","炉甘石","硼砂"
+    ];
+
+    // 当前药库 & 频率
+    let herbList = [...DEFAULT_HERBS];
+    let freqMap = new Map();
+
+    // UI 元素
+    const currentHerbSpan = document.getElementById('currentHerb');
+    const singleContainer = document.getElementById('singleHerbContainer');
+    const multiContainer = document.getElementById('multiHerbContainer');
+    const currentLabel = document.getElementById('currentLabel');
+    const rankListDiv = document.getElementById('rankList');
+    const herbGridDiv = document.getElementById('herbGrid');
+    const searchInput = document.getElementById('searchInput');
+    const masterSpan = document.getElementById('masterCount');
+    const learningSpan = document.getElementById('learningCount');
+
+    // 按钮
+    const drawSingle = document.getElementById('drawSingleBtn');
+    const drawFive = document.getElementById('drawFiveBtn');
+    const drawTen = document.getElementById('drawTenBtn');
+    const resetStatsBtn = document.getElementById('resetStatsBtn');
+    const resetDefaultBtn = document.getElementById('resetToDefaultBtn');
+    const openImportBtn = document.getElementById('openImportBtn');
+    const importArea = document.getElementById('importArea');
+    const bulkInput = document.getElementById('bulkInput');
+    const confirmImport = document.getElementById('confirmImportBtn');
+    const cancelImport = document.getElementById('cancelImportBtn');
+    const deleteModeToggle = document.getElementById('deleteModeToggle');
+    const deleteHint = document.getElementById('deleteHint');
+    const exitDeleteMode = document.getElementById('exitDeleteMode');
+
+    let deleteModeActive = false;
+
+    // 辅助: 去重
+    function uniqueHerbs(arr) {
+        const seen = new Set();
+        return arr.filter(h => { if (seen.has(h)) return false; seen.add(h); return true; });
+    }
+
+    // 刷新整个UI (排行、药库、进度)
+    function refreshUI() {
+        // 药库网格
+        const searchTerm = searchInput.value.trim().toLowerCase();
+        const filtered = herbList.filter(h => h.toLowerCase().includes(searchTerm));
+        let gridHtml = '';
+        if (filtered.length === 0) {
+            gridHtml = '<div style="grid-column:1/-1; text-align:center; padding:20px; color:#8e8b70;">🌱 无匹配</div>';
+        } else {
+            filtered.forEach(herb => {
+                const cnt = freqMap.get(herb) || 0;
+                gridHtml += `<div class="herb-item" data-herb="${herb}">
+                    <span class="herb-name">${herb}</span>
+                    <span class="herb-count-pill">${cnt}</span>
+                </div>`;
+            });
+        }
+        herbGridDiv.innerHTML = gridHtml;
+
+        // 排行
+        const sorted = Array.from(freqMap.entries()).sort((a,b) => b[1] - a[1]);
+        let rankHtml = '';
+        if (sorted.length === 0) {
+            rankHtml = '<div style="padding:16px; text-align:center; color:#aaa;">暂无抽签记录</div>';
+        } else {
+            const maxCount = sorted[0][1] || 1;
+            sorted.forEach(([herb, cnt]) => {
+                const percent = (cnt / maxCount) * 100;
+                rankHtml += `<div class="rank-item">
+                    <span class="rank-name">${herb}</span>
+                    <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${percent}%;"></div></div>
+                    <span class="rank-count">${cnt}</span>
+                </div>`;
+            });
+        }
+        rankListDiv.innerHTML = rankHtml;
+
+        // 掌握/未掌握 (抽过一次就算掌握)
+        const total = herbList.length;
+        const mastered = new Set(Array.from(freqMap.keys()).filter(h => herbList.includes(h))).size;
+        masterSpan.textContent = mastered;
+        learningSpan.textContent = total - mastered;
+
+        // 给所有herb-item绑定事件 (点击抽药或删除)
+        document.querySelectorAll('.herb-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const herb = item.dataset.herb;
+                if (!herb) return;
+                if (deleteModeActive) {
+                    herbList = herbList.filter(h => h !== herb);
+                    freqMap.delete(herb);
+                    // 如果当前显示的药被删除，清展示
+                    if (!herbList.includes(currentHerbSpan.textContent) && currentHerbSpan.textContent !== '——') {
+                        currentHerbSpan.textContent = '——';
+                        singleContainer.style.display = 'block';
+                        multiContainer.style.display = 'none';
+                    }
+                    refreshUI();
+                } else {
+                    manualDrawHerb(herb);
+                }
+            });
+        });
+
+        // 排行点击事件 (快速抽)
+        document.querySelectorAll('.rank-item .rank-name').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const herb = e.target.textContent;
+                if (herb && herbList.includes(herb) && !deleteModeActive) manualDrawHerb(herb);
+            });
+        });
+    }
+
+    // 随机一味
+    function getRandomHerb() {
+        if (herbList.length === 0) return null;
+        return herbList[Math.floor(Math.random() * herbList.length)];
+    }
+
+    // 手动抽单味 (点击药名)
+    function manualDrawHerb(herb) {
+        if (!herbList.includes(herb)) return;
+        freqMap.set(herb, (freqMap.get(herb) || 0) + 1);
+        // 切换到单味显示模式
+        singleContainer.style.display = 'block';
+        multiContainer.style.display = 'none';
+        currentHerbSpan.textContent = herb;
+        currentLabel.textContent = '本次抽中';
+        refreshUI();
+    }
+
+    // 单味按钮
+    function drawSingleFunc() {
+        const h = getRandomHerb();
+        if (!h) return;
+        freqMap.set(h, (freqMap.get(h) || 0) + 1);
+        singleContainer.style.display = 'block';
+        multiContainer.style.display = 'none';
+        currentHerbSpan.textContent = h;
+        currentLabel.textContent = '本次抽中';
+        refreshUI();
+    }
+
+    // 连抽 n 味 —— 所有结果显示在本次抽中区域（多味标签）
+    function drawMultiple(n) {
+        if (herbList.length === 0) return;
+        const results = [];
+        for (let i = 0; i < n; i++) {
+            const h = getRandomHerb();
+            if (h) {
+                results.push(h);
+                freqMap.set(h, (freqMap.get(h) || 0) + 1);
+            }
+        }
+        // 填充多味容器
+        multiContainer.innerHTML = ''; 
+        results.forEach(herb => {
+            const chip = document.createElement('span');
+            chip.className = 'herb-chip';
+            chip.textContent = herb;
+            // 点击chip也可以快速再抽该药? 可选，但为了简洁，不做额外事件，保持干净展示
+            multiContainer.appendChild(chip);
+        });
+        // 显示多味容器，隐藏单味大数字
+        singleContainer.style.display = 'none';
+        multiContainer.style.display = 'flex';
+        currentLabel.textContent = `连抽 ${n} 味`;  // 提示本次连抽数量
+        refreshUI();
+    }
+
+    // 重置统计
+    function resetStats() {
+        freqMap.clear();
+        // 恢复默认显示
+        singleContainer.style.display = 'block';
+        multiContainer.style.display = 'none';
+        currentHerbSpan.textContent = '——';
+        currentLabel.textContent = '本次抽中';
+        refreshUI();
+    }
+
+    // 恢复默认药库
+    function resetDefault() {
+        herbList = [...DEFAULT_HERBS];
+        freqMap.clear();
+        singleContainer.style.display = 'block';
+        multiContainer.style.display = 'none';
+        currentHerbSpan.textContent = '——';
+        currentLabel.textContent = '本次抽中';
+        deleteModeActive = false; deleteHint.style.display = 'none';
+        importArea.style.display = 'none';
+        refreshUI();
+    }
+
+    // 批量导入
+    function importBulk(text) {
+        const parts = text.split(/[，,、\s\n]+/).filter(s => s.trim() !== '');
+        if (parts.length === 0) return;
+        const newHerbs = uniqueHerbs(parts);
+        herbList = newHerbs;
+        // 清除不在新药库的频次
+        const newFreq = new Map();
+        for (let [k, v] of freqMap.entries()) {
+            if (herbList.includes(k)) newFreq.set(k, v);
+        }
+        freqMap = newFreq;
+        singleContainer.style.display = 'block';
+        multiContainer.style.display = 'none';
+        currentHerbSpan.textContent = '——';
+        currentLabel.textContent = '本次抽中';
+        deleteModeActive = false; deleteHint.style.display = 'none';
+        importArea.style.display = 'none';
+        refreshUI();
+    }
+
+    // 事件绑定
+    drawSingle.addEventListener('click', drawSingleFunc);
+    drawFive.addEventListener('click', () => drawMultiple(5));
+    drawTen.addEventListener('click', () => drawMultiple(10));
+
+    resetStatsBtn.addEventListener('click', resetStats);
+    resetDefaultBtn.addEventListener('click', resetDefault);
+
+    openImportBtn.addEventListener('click', () => {
+        importArea.style.display = 'flex';
+        importArea.style.flexDirection = 'column';
+        deleteModeActive = false; deleteHint.style.display = 'none';
+    });
+    cancelImport.addEventListener('click', () => { importArea.style.display = 'none'; bulkInput.value = ''; });
+    confirmImport.addEventListener('click', () => { importBulk(bulkInput.value); bulkInput.value = ''; });
+
+    deleteModeToggle.addEventListener('click', () => {
+        deleteModeActive = !deleteModeActive;
+        deleteHint.style.display = deleteModeActive ? 'flex' : 'none';
+        importArea.style.display = 'none';
+    });
+    exitDeleteMode.addEventListener('click', () => {
+        deleteModeActive = false;
+        deleteHint.style.display = 'none';
+        refreshUI();
+    });
+
+    searchInput.addEventListener('input', refreshUI);
+
+    // 初始化
+    refreshUI();
+})();
+</script>
+</body>
+</html>
